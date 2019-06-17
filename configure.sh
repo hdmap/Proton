@@ -71,6 +71,7 @@ function configure() {
   local steamrt64_name="${1#*:}"
   local steamrt32_type="${2%:*}"
   local steamrt32_name="${2#*:}"
+  local steamrt_path="${3}"
 
   check_steamrt_image "$steamrt64_type" "$steamrt64_name"
   check_steamrt_image "$steamrt32_type" "$steamrt32_name"
@@ -108,6 +109,11 @@ function configure() {
     echo "STEAMRT64_IMAGE := $(escape_for_make "$steamrt64_name")"
     echo "STEAMRT32_MODE  := $(escape_for_make "$steamrt32_type")"
     echo "STEAMRT32_IMAGE := $(escape_for_make "$steamrt32_name")"
+    echo "STEAMRT_PATH    := $(escape_for_make "$steamrt_path")"
+
+    if [[ -n "$arg_crosscc_prefix" ]]; then
+      echo "DXVK_CROSSCC_PREFIX := $(escape_for_make "$arg_crosscc_prefix")," #comma is not a typo
+    fi
 
     # Include base
     echo ""
@@ -124,9 +130,11 @@ function configure() {
 
 arg_steamrt32=""
 arg_steamrt64=""
+arg_steamrt=""
 arg_no_steamrt=""
 arg_ffmpeg=""
 arg_build_name=""
+arg_crosscc_prefix=""
 arg_help=""
 invalid_args=""
 function parse_args() {
@@ -163,6 +171,9 @@ function parse_args() {
     elif [[ $arg = --build-name ]]; then
       arg_build_name="$val"
       val_used=1
+    elif [[ $arg = --dxvk-crosscc-prefix ]]; then
+      arg_crosscc_prefix="$val"
+      val_used=1
     elif [[ $arg = --with-ffmpeg ]]; then
       arg_ffmpeg=1
     elif [[ $arg = --steam-runtime32 ]]; then
@@ -171,6 +182,9 @@ function parse_args() {
     elif [[ $arg = --steam-runtime64 ]]; then
       val_used=1
       arg_steamrt64="$val"
+    elif [[ $arg = --steam-runtime ]]; then
+      val_used=1
+      arg_steamrt="$val"
     elif [[ $arg = --no-steam-runtime ]]; then
       arg_no_steamrt=1
     else
@@ -207,7 +221,7 @@ function parse_args() {
 }
 
 usage() {
-  "$1" "Usage: $0 { --no-steam-runtime | --steam-runtime32=<image> --steam-runtime64=<image> }"
+  "$1" "Usage: $0 { --no-steam-runtime | --steam-runtime32=<image> --steam-runtime64=<image> --steam-runtime=<path> }"
   "$1" "  Generate a Makefile for building Proton.  May be run from another directory to create"
   "$1" "  out-of-tree build directories (e.g. mkdir mybuild && cd mybuild && ../configure.sh)"
   "$1" ""
@@ -217,6 +231,10 @@ usage() {
   "$1" "    --build-name=<name>  Set the name of the build that displays when used in Steam"
   "$1" ""
   "$1" "    --with-ffmpeg        Build ffmpeg for WMA audio support"
+  "$1" ""
+  "$1" "    --dxvk-crosscc-prefix='<prefix>' Quoted and comma-separated list of arguments to prefix before"
+  "$1" "                                     the cross-compiler that builds DXVK. E.g:"
+  "$1" "                                     --dxvk-crosscc-prefix=\"schroot\",\"-c\",\"some_chroot\",\"--\""
   "$1" ""
   "$1" "  Steam Runtime"
   "$1" "    Proton builds that are to be installed & run under the steam client must be built with"
@@ -230,6 +248,10 @@ usage() {
   "$1" "    --steam-runtime32=docker:<image>  The 32-bit docker image to use for steps that require"
   "$1" "                                      a 32-bit environment.  See --steam-runtime64."
   "$1" ""
+  "$1" "    --steam-runtime=<path>            Path to the runtime built for the host (i.e. the output"
+  "$1" "                                      directory given to steam-runtime/build-runtime.py). Should"
+  "$1" "                                      contain run.sh."
+  "$1" ""
   "$1" "    --no-steam-runtime  Do not automatically invoke any runtime SDK as part of the build."
   "$1" "                        Build steps may still be manually run in a runtime environment."
   exit 1;
@@ -240,10 +262,10 @@ parse_args "$@" || usage err
 [[ -z $arg_help ]] || usage info
 
 # Sanity check arguments
-if [[ -n $arg_no_steamrt && (-n $arg_steamrt32 || -n $arg_steamrt64) ]]; then
+if [[ -n $arg_no_steamrt && (-n $arg_steamrt32 || -n $arg_steamrt64 || -n $arg_steamrt) ]]; then
     die "Cannot specify a Steam Runtime SDK as well as --no-steam-runtime"
-elif [[ -z $arg_no_steamrt && ( -z $arg_steamrt32 || -z $arg_steamrt64 ) ]]; then
-    die "Must specify either --no-steam-runtime or both --steam-runtime32 and --steam-runtime64"
+elif [[ -z $arg_no_steamrt && ( -z $arg_steamrt32 || -z $arg_steamrt64 || -z $arg_steamrt ) ]]; then
+    die "Must specify either --no-steam-runtime or all of --steam-runtime32, --steam-runtime64, and --steam-runtime"
 fi
 
-configure "$arg_steamrt64" "$arg_steamrt32"
+configure "$arg_steamrt64" "$arg_steamrt32" "$arg_steamrt"

@@ -1,12 +1,14 @@
 #include "steam_defs.h"
-#include "steamworks_sdk_142/steam_api.h"
-#include "steamworks_sdk_142/isteamgameserverstats.h"
+#include "steamworks_sdk_144/steam_api.h"
+#include "steamworks_sdk_144/steamnetworkingtypes.h"
+#include "steamworks_sdk_144/isteamgameserverstats.h"
 #include "steamclient_private.h"
-#include "cppISteamGameServerStats_SteamGameServerStats001.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
-#include "struct_converters_142.h"
+#define SDKVER_144
+#include "struct_converters.h"
+#include "cppISteamGameServerStats_SteamGameServerStats001.h"
 SteamAPICall_t cppISteamGameServerStats_SteamGameServerStats001_RequestUserStats(void *linux_side, CSteamID steamIDUser)
 {
     return ((ISteamGameServerStats*)linux_side)->RequestUserStats((CSteamID)steamIDUser);

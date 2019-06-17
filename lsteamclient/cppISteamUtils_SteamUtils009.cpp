@@ -1,11 +1,13 @@
 #include "steam_defs.h"
-#include "steamworks_sdk_142/steam_api.h"
+#include "steamworks_sdk_144/steam_api.h"
+#include "steamworks_sdk_144/steamnetworkingtypes.h"
 #include "steamclient_private.h"
-#include "cppISteamUtils_SteamUtils009.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
-#include "struct_converters_142.h"
+#define SDKVER_144
+#include "struct_converters.h"
+#include "cppISteamUtils_SteamUtils009.h"
 uint32 cppISteamUtils_SteamUtils009_GetSecondsSinceAppActive(void *linux_side)
 {
     return ((ISteamUtils*)linux_side)->GetSecondsSinceAppActive();
